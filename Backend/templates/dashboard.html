@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Login Logs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container" style="max-width: 800px;"> <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Login Logs</h2>
+        <a href="/logout" style="text-decoration: none; color: #ff4d4d; font-weight: bold;">Logout</a>
+    </div>
+
+    <table border="1" width="100%" style="border-collapse: collapse; margin-top: 20px;">
+        <tr style="background-color: #f2f2f2;">
+            <th style="padding: 10px;">User</th>
+            <th style="padding: 10px;">Zeitpunkt</th>
+            <th style="padding: 10px;">Erfolg</th>
+        </tr>
+
+        {% for log in logs %}
+        <tr>
+            <td style="padding: 8px; text-align: center;">{{ log[1] }}</td>
+            <td style="padding: 8px; text-align: center;">{{ log[2] }}</td>
+            <td style="padding: 8px; text-align: center;">
+                {% if log[3] == 1 %}
+                    <span style="color: green;">✔ Erfolg</span>
+                {% else %}
+                    <span style="color: red;">✘ Fehlgeschlagen</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+</div>
+
+</body>
+</html>
