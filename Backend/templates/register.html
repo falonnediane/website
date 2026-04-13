@@ -12,24 +12,22 @@
     <h2>Registrieren</h2>
 
     {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class="flash-messages">
-          {% for message in messages %}
-            <p style="color: #ff4d4d; font-size: 0.9em;">{{ message }}</p>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
+  {% if messages %}
+    {% for message in messages %}
+      <p style="color: red; background: #fee; border: 1px solid red; padding: 10px;">
+        {{ message }}
+      </p>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
 
     <form method="POST">
-        <input name="username" placeholder="Benutzername" required autocomplete="off">
+       <input type="email" name="email" placeholder="E-Mail Adresse" required>
         <input type="password" name="password" placeholder="Passwort" required>
         <button type="submit">Account erstellen</button>
     </form>
-
-    <div class="footer-links" style="margin-top: 15px;">
-        <a href="/login">Zurück zum Login</a>
-    </div>
+    
+    <a href="/login">Zurück zum Login</a>
 </div>
 
 </body>

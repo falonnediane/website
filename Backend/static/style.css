@@ -14,6 +14,10 @@ body {
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     text-align: center;
+    margin-top: 50px; /* Erzeugt Platz zum oberen Rand */
+    max-height: 90vh; /* Verhindert, dass der Container den Bildschirm sprengt */
+    overflow-y: auto; /* Erlaubt das Scrollen innerhalb des weißen Kastens */
+    display: block;   /* Stellt sicher, dass das Padding oben wirkt */
 }
 
 input {
@@ -33,4 +37,12 @@ button {
     border: none;
     border-radius: 4px;
     cursor: pointer;
+}
+
+
+thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f2f2f2;
+    z-index: 10;
 }
