@@ -8,6 +8,13 @@ from datetime import timedelta
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = "secretkey"
+# Die Session ist permanent, damit das Timeout greift
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=10)
+
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
+    # Aktualisiert den Zeitstempel bei jeder Interaktion
 
 # Datenbank-Verbindung mit Row-Factory für Namenszugriff (Behebt TypeError)
 def get_db():
@@ -35,14 +42,6 @@ def init_db():
         conn.commit()
 
 init_db()
-
-# Die Session ist permanent, damit das Timeout greift
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=10)
-
-@app.before_request
-def make_session_permanent():
-    session.permanent = True
-    # Aktualisiert den Zeitstempel bei jeder Interaktion
 
 def ist_passwort_stark(password):
     if len(password) < 8:
@@ -141,7 +140,8 @@ def dashboard():
         # Wir holen alle relevanten Spalten für die Analyse [cite: 40]
         logs = conn.execute("SELECT email, time, success FROM logins ORDER BY time DESC").fetchall()
 
-    return render_template("dashboard.html", logs=logs)
+    total_seconds = app.config['PERMANENT_SESSION_LIFETIME'].total_seconds()
+    return render_template("dashboard.html", logs=logs, timeout=total_seconds)
 
 @app.route("/mfa", methods=["GET", "POST"])
 def mfa():
