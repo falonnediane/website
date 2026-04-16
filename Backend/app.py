@@ -3,6 +3,8 @@ import sqlite3
 import bcrypt
 import datetime
 import random
+import re
+from datetime import timedelta
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = "secretkey"
@@ -34,6 +36,25 @@ def init_db():
 
 init_db()
 
+# Die Session ist permanent, damit das Timeout greift
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=10)
+
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
+    # Aktualisiert den Zeitstempel bei jeder Interaktion
+
+def ist_passwort_stark(password):
+    if len(password) < 8:
+        return False, "Passwort muss mindestens 8 Zeichen lang sein."
+    if not re.search(r"[A-Z]", password):
+        return False, "Passwort muss mindestens einen Großbuchstaben enthalten."
+    if not re.search(r"[0-9]", password):
+        return False, "Passwort muss mindestens eine Zahl enthalten."
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        return False, "Passwort muss mindestens ein Sonderzeichen enthalten."
+    return True, ""
+
 @app.route("/")
 def home():
     return redirect("/login")
@@ -44,6 +65,10 @@ def register():
     if request.method == "POST":
         email = request.form.get("email")
         password = request.form.get("password")
+        stark, nachricht = ist_passwort_stark(password)
+        if not stark:
+            flash(nachricht)
+            return render_template("register.html")
         hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
         try:
@@ -54,10 +79,11 @@ def register():
                     (email, hashed)
                 )
                 conn.commit()
+                flash("Registrierung erfolgreich! Bitte einloggen.")
             return redirect("/login")
         except sqlite3.IntegrityError:
             # Wird ausgelöst, wenn 'UNIQUE' verletzt wird
-            flash("Dieser Benutzername existiert bereits!")
+            flash("Diese E-Mail-Adresse existiert bereits!")
             
     return render_template("register.html")
 
@@ -86,12 +112,19 @@ def login():
                 session["mfa_code"] = mfa_code
                 print(f"--- MFA-CODE: {mfa_code} ---")
                 return redirect("/mfa")
-            
-            # Fehlgeschlagener Versuch (falsches Passwort)
-            conn.execute("INSERT INTO logins(email, time, success) VALUES (?, ?, ?)",
-                         (email, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 0))
-            conn.commit()
-            flash("Ungültige Zugangsdaten.")
+            else:
+                # Fehlgeschlagener Versuch (falsches Passwort)
+                conn.execute("INSERT INTO logins(email, time, success) VALUES (?, ?, ?)",
+                             (email, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 0))
+                conn.commit()
+                # NEU: Warnung beim 4. Versuch (da der aktuelle 5. gerade gespeichert wurde)
+                aktuelle_fehler = fehlversuche + 1
+                if aktuelle_fehler == 4:
+                    flash("ACHTUNG: Dies ist Ihr vorletzter Versuch, bevor das Konto gesperrt wird!")
+                elif aktuelle_fehler == 5:
+                    flash("Letzter Versuch fehlgeschlagen. Konto für 5 Minuten gesperrt.")
+                else:
+                    flash("Ungültige Zugangsdaten.")
     return render_template("login.html")
 
 @app.route("/logout")
@@ -158,6 +191,25 @@ def set_new_password():
         
         print(f"DEBUG: Passwort-Reset für {email} gestartet...") # Prüfen, ob Email da ist
         
+        # --- Passwort-Stärke-Prüfung ---
+        # Mindestens 8 Zeichen, 1 Großbuchstabe, 1 Zahl, 1 Sonderzeichen
+        if len(new_password) < 8:
+            flash("Passwort muss mindestens 8 Zeichen lang sein.")
+            return render_template("set_new_password.html")
+        
+        if not re.search(r"[A-Z]", new_password):
+            flash("Passwort muss mindestens einen Großbuchstaben enthalten.")
+            return render_template("set_new_password.html")
+            
+        if not re.search(r"[0-9]", new_password):
+            flash("Passwort muss mindestens eine Zahl enthalten.")
+            return render_template("set_new_password.html")
+
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", new_password):
+            flash("Passwort muss mindestens ein Sonderzeichen enthalten.")
+            return render_template("set_new_password.html")
+       
+
         hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
 
         with get_db() as conn:
