@@ -1,48 +1,63 @@
-body {
-    font-family: Arial, sans-serif;
-    background-color: #3498db;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-}
 
-.container {
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    text-align: center;
-    margin-top: 50px; /* Erzeugt Platz zum oberen Rand */
-    max-height: 90vh; /* Verhindert, dass der Container den Bildschirm sprengt */
-    overflow-y: auto; /* Erlaubt das Scrollen innerhalb des weißen Kastens */
-    display: block;   /* Stellt sicher, dass das Padding oben wirkt */
-}
+        :root {
+            --primary-color: #5e54c9; /* Das Violett aus deinem Referenzbild */
+            --bg-color: #f4f7f9;
+            --input-bg: #eff2f5;
+        }
 
-input {
-    display: block;
-    width: 100%;
-    margin-bottom: 10px;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
 
-button {
-    width: 100%;
-    padding: 10px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
+        .auth-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
 
+        h1 { font-size: 28px; margin-bottom: 10px; font-weight: 600; }
+        p.subtitle { color: #888; margin-bottom: 30px; font-size: 14px; }
 
-thead th {
-    position: sticky;
-    top: 0;
-    background-color: #f2f2f2;
-    z-index: 10;
-}
+        .form-group { text-align: left; margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: #555; }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background-color: var(--input-bg);
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-submit:hover { opacity: 0.9; }
+
+        .footer-links { margin-top: 25px; font-size: 14px; color: #666; }
+        .footer-links a { color: var(--primary-color); text-decoration: none; font-weight: 600; }
+
+        .flash-messages { color: #d9534f; margin-bottom: 20px; font-size: 14px; font-weight: bold; }

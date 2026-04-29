@@ -2,88 +2,127 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard - Login Logs</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sicherheits-Dashboard</title>
+    <style>
+        :root {
+            --primary-color: #5e54c9; /* Das Violett aus deinem Foto */
+            --bg-color: #f9f9f9;
+            --text-color: #333;
+            --danger-color: #dc3545;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding-top: 50px;
+        }
+
+        /* Timer Box oben rechts */
+        #session-timer-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid #eee;
+            text-align: center;
+            z-index: 1000;
+        }
+
+        .timer-label { font-size: 12px; color: #888; display: block; margin-bottom: 2px; }
+        #timer { font-weight: bold; color: var(--danger-color); font-size: 18px; }
+
+        .dashboard-card {
+            background: white;
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        h2 { font-size: 24px; margin-bottom: 30px; color: #000; display: flex; justify-content: space-between; align-items: center; }
+
+        .logout-link { color: var(--danger-color); font-size: 14px; text-decoration: none; font-weight: 500; }
+        .logout-link:hover { text-decoration: underline; }
+
+        /* Tabellen Styling */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: left; }
+        th { color: #888; font-size: 13px; font-weight: 500; padding: 12px; border-bottom: 1px solid #eee; text-transform: uppercase; }
+        td { padding: 16px 12px; border-bottom: 1px solid #f1f1f1; font-size: 15px; }
+
+        .status-pill { padding: 4px 10px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+        .success { background: #e8f5e9; color: #2e7d32; }
+        .fail { background: #ffebee; color: #c62828; }
+    </style>
 </head>
 <body>
-<div id="session-timer-box" style="
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: rgba(255, 255, 255, 0.9);
-        padding: 10px 15px;
-        border-radius: 8px;
-        border: 1px solid #d9534f;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        z-index: 1000;
-        font-family: sans-serif;">
-        <span style="font-size: 0.8em; color: #666; display: block;">Sitzung läuft ab in:</span>
-        <span id="timer" style="color: #d9534f; font-weight: bold; font-size: 1.2em;">--:--</span>
-     </div>
 
- <div class="container">
-    <h2>Login Logs <a href="/logout" style="font-size: 14px; color: red; text-decoration: none; margin-left: 20px;">Logout</a></h2>
-    
-   <table border="1" style="width: 100%; text-align: left; border-collapse: collapse; margin-top: 20px;">
-    <thead>
-        <tr style="background-color: #f2f2f2;">
-            <th style="padding: 10px;">User (E-Mail)</th>
-            <th style="padding: 10px;">Zeitpunkt</th>
-            <th style="padding: 10px;">Ergebnis</th>
-        </tr>
-    </thead>
-    <tbody>
-     
-        {% for log in logs %}
-        <tr>
-            <td style="padding: 10px;">{{ log['email'] }}</td>
-            <td style="padding: 10px;">{{ log['time'] }}</td>
-            <td style="padding: 10px;">
-                {% if log['success'] == 1 %}
-                    <span style="color: green; font-weight: bold;">✔ Erfolg</span>
-                {% else %}
-                    <span style="color: red; font-weight: bold;">✘ Fehlgeschlagen</span>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
+    <div id="session-timer-box">
+        <span class="timer-label">Sitzung läuft ab in:</span>
+        <span id="timer">--:--</span>
+    </div>
 
-     
-    </tbody>
-  </table>
- </div>
+    <div class="dashboard-card">
+        <h2>
+            Sicherheits-Audit Logs 
+            <a href="/logout" class="logout-link">Abmelden</a>
+        </h2>
 
-  <script>
-      // Wir nehmen den Timeout-Wert von Flask (in Sekunden)
-      let secondsLeft = parseInt("{{ timeout }}");
-      const timerDisplay = document.getElementById('timer');
+        <table>
+            <thead>
+                <tr>
+                    <th>Benutzer</th>
+                    <th>Zeitpunkt</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log['email'] }}</td>
+                    <td>{{ log['time'] }}</td>
+                    <td>
+                        {% if log['success'] == 1 %}
+                        <span class="status-pill success">✔ Erfolg</span>
+                        {% else %}
+                        <span class="status-pill fail">✘ Fehlgeschlagen</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-      function updateTimer() {
-        let minutes = Math.floor(secondsLeft / 60);
-        let seconds = secondsLeft % 60;
-        
-        // Anzeige formatieren (z.B. 09:05)
-        timerDisplay.textContent = 
-            (minutes < 10 ? "0" : "") + minutes + ":" + 
-            (seconds < 10 ? "0" : "") + seconds;
+    <script>
+        // Verhindert den NaN Fehler durch einen Default-Wert
+        let secondsLeft = parseInt("{{ timeout }}") || 600;
+        const timerDisplay = document.getElementById('timer');
 
-        // Wenn die Zeit abgelaufen ist
-        if (secondsLeft <= 0) {
-            alert("Deine Sitzung ist abgelaufen. Du wirst zum Login weitergeleitet.");
-            window.location.href = "/login";
-        } else {
-            secondsLeft--;
+        function updateTimer() {
+            let minutes = Math.floor(secondsLeft / 60);
+            let seconds = secondsLeft % 60;
+            timerDisplay.textContent = (minutes < 10 ? "0" : "") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+
+            if (secondsLeft <= 0) {
+                window.location.href = "/login";
+            } else {
+                secondsLeft--;
+            }
         }
-        
-        // Optische Warnung, wenn weniger als 1 Minute übrig ist
-        if (secondsLeft < 60) {
-            document.getElementById('session-timer-box').style.backgroundColor = "#f2dede";
-        }
-      }
-
-       // Timer jede Sekunde starten
-       setInterval(updateTimer, 1000);
-       updateTimer();
+        setInterval(updateTimer, 1000);
+        updateTimer();
     </script>
 </body>
 </html>

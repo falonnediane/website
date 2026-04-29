@@ -8,7 +8,7 @@
 </head>
 <body>
 
-<div class="container">
+<div class="auth-card">
     <h2>Registrieren</h2>
 
     {% with messages = get_flashed_messages() %}
@@ -22,17 +22,21 @@
 {% endwith %}
 
     <form method="POST">
-       <input type="email" name="email" placeholder="E-Mail Adresse" required>
-        <input type="password" name="password" placeholder="Passwort" required>
-        <div style="font-size: 0.8em; text-align: left; margin: 10px 0; color: #666;">
-          
-         <strong>Anforderungen:</strong>
-         <ul style="list-style: none; padding: 0;">
-            <li>min. 8 Zeichen; min. 1 Großbuchstabe; min. 1 Zahl; min. 1 Sonderzeiche</li>
-             <!-- Hier können weitere Anforderungen ergänzt werden -->
-         </ul>
+        <div class="form-group"
+                <label>E-Mail-Adresse</label>
+                <input type="email" name="email" placeholder="email" required>
         </div>
-        <button type="submit">Account erstellen</button>
+        <div class="form-group">
+                <label>Passwort</label>
+                <input type="password" name="password" placeholder="••••••••" required>
+        </div>
+        <div style="font-size: 0.8em; text-align: left; margin: 10px 0; color: #666;"> 
+         <strong>Anforderungen:</strong>
+         <ul >
+            <li>min. 8 Zeichen; min. 1 Großbuchstabe; min. 1 Zahl; min. 1 Sonderzeiche</li>
+         </ul>
+        </div >
+        <button type="submit" class="btn-submit">Account erstellen</button>
     </form>
     
     <a href="/login">Zurück zum Login</a>
