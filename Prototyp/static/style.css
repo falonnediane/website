@@ -1,10 +1,12 @@
 
+        /* Definiert globale Variablen auf der höchsten Ebene des Dokuments (:root) */
         :root {
             --primary-color: #5e54c9; /* Das Violett aus deinem Referenzbild */
             --bg-color: #f4f7f9;
             --input-bg: #eff2f5;
         }
-
+        
+        /* Gestaltet das gesamte Body-Element (die komplette sichtbare Seite) */
         body {
             font-family: 'Segoe UI', sans-serif;
             background-color: var(--bg-color);
@@ -14,7 +16,8 @@
             height: 100vh;
             margin: 0;
         }
-
+          
+        /* Gestaltet die weiße Karte, in der das Formular liegt */
         .auth-card {
             background: white;
             padding: 40px;
@@ -30,7 +33,8 @@
 
         .form-group { text-align: left; margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-size: 14px; color: #555; }
-
+        
+        /* Gestaltet alle Eingabefelder (z.B. für E-Mail und Passwort) */
         input {
             width: 100%;
             padding: 14px;
@@ -41,6 +45,7 @@
             font-size: 16px;
         }
 
+        /* Gestaltet den Absende-Button des Formulars */
         .btn-submit {
             width: 100%;
             padding: 14px;

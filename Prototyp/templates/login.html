@@ -10,8 +10,8 @@
     <div class="auth-card">
         <h1>Willkommen zurück</h1>
         <p class="subtitle">Melde dich bei deinem Konto an</p>
-
-        {% with messages = get_flashed_messages() %}
+          {% with messages = get_flashed_messages() %}
+        
           {% if messages %}
             <div class="flash-messages">
               {{ messages[0] }}
