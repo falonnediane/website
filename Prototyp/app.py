@@ -1,10 +1,12 @@
-from flask import Flask, render_template, request, redirect, session, flash
+from flask import Flask, render_template, request, redirect, session, flash, g
 import sqlite3
 import bcrypt
 import datetime
 import random
 import re
 from datetime import timedelta
+import os
+
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = "secretkey"
@@ -17,31 +19,30 @@ def make_session_permanent():
     # Aktualisiert den Zeitstempel bei jeder Interaktion
 
 # Datenbank-Verbindung mit Row-Factory für Namenszugriff (Behebt TypeError)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# 2. Verbinde diesen Ordner fest mit dem Dateinamen
+app.config['DATABASE'] = os.path.join(BASE_DIR, 'database.db')
+
+from flask import Flask, render_template, request, redirect, session, flash, g  # <-- g importieren
+
+# ... (Rest deines Codes bleibt gleich)
+
 def get_db():
-    conn = sqlite3.connect("database.db")
-    conn.row_factory = sqlite3.Row # Wichtig für user['password']
-    return conn
+    """Nutzt das Flask g-Objekt, um eine einzige Verbindung pro Request zu halten."""
+    if 'db' not in g:
+        db_path = app.config.get('DATABASE')
+        g.db = sqlite3.connect(db_path)
+        g.db.row_factory = sqlite3.Row
+    return g.db
 
-def init_db():
-    with get_db() as conn:
-        conn.execute("""
-        CREATE TABLE IF NOT EXISTS users(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE,  -- E-Mail muss eindeutig sein [cite: 21]
-            password TEXT
-        )
-        """)
-        conn.execute("""
-        CREATE TABLE IF NOT EXISTS logins(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT,
-            time TEXT,
-            success INTEGER
-        )
-        """)
-        conn.commit()
+@app.teardown_appcontext
+def close_db(exception):
+    """Schließt die Verbindung am Ende des Requests/Tests sauber."""
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
 
-init_db()
 
 def ist_passwort_stark(password):
     if len(password) < 8:
@@ -222,6 +223,30 @@ def set_new_password():
         return redirect("/login")
 
     return render_template("set_new_password.html")
+
+
+def init_db():
+    with get_db() as conn:
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS users(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE,  -- E-Mail muss eindeutig sein [cite: 21]
+            password TEXT
+        )
+        """)
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS logins(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT,
+            time TEXT,
+            success INTEGER
+        )
+        """)
+        conn.commit()
+
+# Erstellt einen temporären Kontext, damit g während init_db() verfügbar ist
+with app.app_context():
+    init_db()
 
 if __name__ == "__main__":
     app.run(debug=True)
