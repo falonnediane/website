@@ -7,7 +7,6 @@ import re
 from datetime import timedelta
 import os
 
-
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = "secretkey"
 # Die Session ist permanent, damit das Timeout greift
@@ -27,7 +26,6 @@ app.config['DATABASE'] = os.path.join(BASE_DIR, 'database.db')
 from flask import Flask, render_template, request, redirect, session, flash, g  # <-- g importieren
 
 # ... (Rest deines Codes bleibt gleich)
-
 def get_db():
     """Nutzt das Flask g-Objekt, um eine einzige Verbindung pro Request zu halten."""
     if 'db' not in g:
@@ -42,7 +40,6 @@ def close_db(exception):
     db = g.pop('db', None)
     if db is not None:
         db.close()
-
 
 def ist_passwort_stark(password):
     if len(password) < 8:
@@ -70,12 +67,10 @@ def register():
             flash(nachricht)
             return render_template("register.html")
         hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-
         try:
             with get_db() as conn:
                 conn.execute(
                     "INSERT INTO users(email, password) VALUES (?, ?)",
-                
                     (email, hashed)
                 )
                 conn.commit()
@@ -84,7 +79,6 @@ def register():
         except sqlite3.IntegrityError:
             # Wird ausgelöst, wenn 'UNIQUE' verletzt wird
             flash("Diese E-Mail-Adresse existiert bereits!")
-            
     return render_template("register.html")
 
 # Login mit Brute-Force Schutz & Logging [cite: 21, 28, 40]
@@ -93,14 +87,14 @@ def login():
     if request.method == "POST":
         email = request.form.get("email")
         password = request.form.get("password")
-        
+
         with get_db() as conn:
             # Brute-Force Schutz prüfen [cite: 21, 27]
             zeit_limit = (datetime.datetime.now() - datetime.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
             fehlversuche = conn.execute("SELECT COUNT(*) FROM logins WHERE email = ? AND success = 0 AND time > ?", (email, zeit_limit)).fetchone()[0]
 
             if fehlversuche >= 5:
-                flash("Konto wegen zu vieler Versuche gesperrt.") 
+                flash("Konto wegen zu vieler Versuche gesperrt.")
                 return render_template("login.html")
 
             user = conn.execute("SELECT password FROM users WHERE email=?", (email,)).fetchone()
@@ -121,7 +115,6 @@ def login():
                 aktuelle_fehler = fehlversuche + 1
                 if aktuelle_fehler == 4:
                     flash("ACHTUNG: Dies ist Ihr vorletzter Versuch, bevor das Konto gesperrt wird!")
-
                 elif aktuelle_fehler == 5:
                     flash("Letzter Versuch fehlgeschlagen. Konto für 5 Minuten gesperrt.")
                 else:
@@ -149,7 +142,7 @@ def dashboard():
 def mfa():
     if "mfa_email" not in session:
         return redirect("/login")
-        
+
     if request.method == "POST":
         eingabe = request.form.get("code")
         email = session.get("mfa_email")
@@ -164,10 +157,14 @@ def mfa():
             session.pop("mfa_code")
             return redirect("/dashboard")
         else:
-            # FEHLER: Hier wird die Nachricht für die MFA-Seite erstellt
-            flash("Falscher MFA-Code! Bitte erneut versuchen.") 
+        # FEHLER: Hier wird die Nachricht für die MFA-Seite erstellt
+         with get_db() as conn:
+          conn.execute("INSERT INTO logins(email, time, success) VALUES (?, ?, ?)",
+                             (email, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 0))
+          conn.commit()   
+        flash("Falscher MFA-Code! Bitte erneut versuchen.")
+
             # Wir bleiben auf der MFA-Seite
-            
     return render_template("mfa.html")
 
 # Schritt 1: E-Mail eingeben (hast du schon fast fertig)
@@ -177,7 +174,7 @@ def reset_password():
         email = request.form.get("email")
         # In der Realität würde man hier prüfen, ob der User existiert
         # Für den Prototyp leiten wir direkt zur Eingabe des NEUEN Passworts weiter
-        session["reset_email"] = email 
+        session["reset_email"] = email
         return redirect("/set_new_password")
     return render_template("reset_password.html")
 
@@ -190,19 +187,19 @@ def set_new_password():
     if request.method == "POST":
         new_password = request.form.get("password")
         email = session.get("reset_email")
-        
+
         print(f"DEBUG: Passwort-Reset für {email} gestartet...") # Prüfen, ob Email da ist
-        
+
         # --- Passwort-Stärke-Prüfung ---
         # Mindestens 8 Zeichen, 1 Großbuchstabe, 1 Zahl, 1 Sonderzeichen
         if len(new_password) < 8:
             flash("Passwort muss mindestens 8 Zeichen lang sein.")
             return render_template("set_new_password.html")
-        
+
         if not re.search(r"[A-Z]", new_password):
             flash("Passwort muss mindestens einen Großbuchstaben enthalten.")
             return render_template("set_new_password.html")
-            
+
         if not re.search(r"[0-9]", new_password):
             flash("Passwort muss mindestens eine Zahl enthalten.")
             return render_template("set_new_password.html")
@@ -210,7 +207,6 @@ def set_new_password():
         if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", new_password):
             flash("Passwort muss mindestens ein Sonderzeichen enthalten.")
             return render_template("set_new_password.html")
-       
 
         hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
 
@@ -218,7 +214,7 @@ def set_new_password():
             result = conn.execute("UPDATE users SET password = ? WHERE email = ?", (hashed, email))
             conn.commit()
             print(f"DEBUG: Betroffene Zeilen: {result.rowcount}") # Muss 1 sein!
-        
+
         session.pop("reset_email")
         flash("Passwort erfolgreich geändert! Du kannst dich jetzt einloggen.")
         return redirect("/login")
@@ -250,4 +246,5 @@ with app.app_context():
     init_db()
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True) 
+
