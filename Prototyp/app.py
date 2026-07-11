@@ -23,9 +23,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # 2. Verbinde diesen Ordner fest mit dem Dateinamen
 app.config['DATABASE'] = os.path.join(BASE_DIR, 'database.db')
 
-from flask import Flask, render_template, request, redirect, session, flash, g  # <-- g importieren
-
-# ... (Rest deines Codes bleibt gleich)
 def get_db():
     """Nutzt das Flask g-Objekt, um eine einzige Verbindung pro Request zu halten."""
     if 'db' not in g:
@@ -89,7 +86,7 @@ def login():
         password = request.form.get("password")
 
         with get_db() as conn:
-            # Brute-Force Schutz prüfen [cite: 21, 27]
+            # Brute-Force Schutz prüfen 
             zeit_limit = (datetime.datetime.now() - datetime.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
             fehlversuche = conn.execute("SELECT COUNT(*) FROM logins WHERE email = ? AND success = 0 AND time > ?", (email, zeit_limit)).fetchone()[0]
 
@@ -213,7 +210,7 @@ def set_new_password():
         with get_db() as conn:
             result = conn.execute("UPDATE users SET password = ? WHERE email = ?", (hashed, email))
             conn.commit()
-            print(f"DEBUG: Betroffene Zeilen: {result.rowcount}") # Muss 1 sein!
+            print(f"DEBUG: Betroffene Zeilen: {result.rowcount}") 
 
         session.pop("reset_email")
         flash("Passwort erfolgreich geändert! Du kannst dich jetzt einloggen.")

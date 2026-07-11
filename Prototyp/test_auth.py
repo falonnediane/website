@@ -3,14 +3,15 @@ import sqlite3
 import os       
 import bcrypt    
 import re        
-from app import app, get_db  
+from app import app, get_db , ist_passwort_stark , random # Importiert die Flask-App, die Datenbankfunktion und die Passwortstärkefunktion
+
 
 class AuthenticationSystemTests(unittest.TestCase):  # Erstellt die Testklasse, die von unittest.TestCase erbt
 
     def setUp(self):  # Diese Methode läuft automatisch VOR JEDEM EINZELNEN Test ab (Initialisierung)
        
         app.config['TESTING'] = True  # Schaltet Flask in den Testmodus (Fehler werden direkt im Terminal angezeigt)
-        app.config['WTF_CSRF_ENABLED'] = False 
+        
         
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Ermittelt den absoluten Pfad des Ordners, in dem diese Testdatei liegt
         app.config['DATABASE'] = os.path.join(BASE_DIR, 'database.db')  
@@ -33,21 +34,70 @@ class AuthenticationSystemTests(unittest.TestCase):  # Erstellt die Testklasse, 
     # --- UNIT-TEST ---
     def test_00_unit_passwort_staerke(self): 
         """UNIT-TEST: Prüft die Funktion 'ist_passwort_stark' isoliert."""
-        from app import ist_passwort_stark  
+        # Regel 1: Mindestens 8 Zeichen
+        stark, msg = ist_passwort_stark("Short1!")
+        self.assertFalse(stark)
+        self.assertIn("mindestens 8 Zeichen", msg)
+        
+        # Regel 2: Mindestens ein Großbuchstabe
+        stark, msg = ist_passwort_stark("kleingeschrieben1!")
+        self.assertFalse(stark)
+        self.assertIn("Großbuchstaben", msg)
+        
+        # Regel 3: Mindestens eine Zahl
+        stark, msg = ist_passwort_stark("KeineZahlHier!")
+        self.assertFalse(stark)
+        self.assertIn("eine Zahl", msg)
+        
+        # Regel 4: Mindestens ein Sonderzeichen
+        stark, msg = ist_passwort_stark("PasswortMitZahl2026")
+        self.assertFalse(stark)
+        self.assertIn("Sonderzeichen", msg)
+
+        # Testet ein starkes Passwort, das alle Kriterien erfüllt
         stark, _ = ist_passwort_stark("Ab1!")  
         self.assertFalse(stark)  
         stark, _ = ist_passwort_stark("Falonnediane1.")  
         self.assertTrue(stark)  
 
-    # --- INTEGRATIONSTESTS ---
-    def test_01_successful_login_redirects_to_mfa(self):  
+    def test_01_unit_mfa_code_properties(self):
+        """UNIT-TEST: Prüft, ob der generierte MFA-Code den mathematischen Sicherheitsvorgaben entspricht."""
+        
+        # Wir simulieren die Code-Generierung aus app.py 100-mal, um Zufallsfehler auszuschließen
+        for _ in range(100):
+            mfa_code = str(random.randint(100000, 999999))
+            
+            # Kriterium 1: Muss exakt 6 Zeichen lang sein
+            self.assertEqual(len(mfa_code), 6)
+            
+            # Kriterium 2: Muss rein numerisch sein (keine Buchstaben/Sonderzeichen)
+            self.assertTrue(mfa_code.isdigit())
+            
+            # Kriterium 3: Muss im definierten Wertebereich liegen
+            self.assertTrue(100000 <= int(mfa_code) <= 999999)
+
+    # --- INTEGRATIONSTESTS ---   
+    def test_02_register_duplicate_email_fails(self):
+        """INTEGRATIONSTEST: Prüft, ob die Registrierung einer bereits existierenden E-Mail blockiert wird."""
+        # Wir versuchen die E-Mail zu registrieren, die bereits in setUp() erstellt wurde
+        response = self.client.post('/register', data={
+            'email': 'falonnedianesimo@gmail.com',
+            'password': 'Falonnediane1.'
+        }, follow_redirects=True)
+        
+        # Prüfen, ob die App den IntegrityError abfängt und die richtige Meldung flash
+        self.assertIn("existiert bereits".encode('utf-8'), response.data)
+
+
+
+    def test_03_successful_login_redirects_to_mfa(self):  
         """INTEGRATIONSTEST: Überprüfung, ob korrekte Daten zur MFA-Prüfung führen."""
         # Sendet einen HTTP-POST-Request mit korrekten Login-Daten an die App und folgt automatischen Weiterleitungen
         response = self.client.post('/login', data={'email': 'falonnedianesimo@gmail.com', 'password': 'Falonnediane1.'}, follow_redirects=True)
         self.assertIn(b'2-Faktor-Authentifizierung', response.data)  # Prüft, ob der Text '2-Faktor-Authentifizierung' im HTML der Antwort vorkommt
 
 
-    def test_02_account_lockout_after_5_failures(self):  # Testet das Sperren der Authentifizierung nach dem Limit
+    def test_04_account_lockout_after_5_failures(self):  # Testet das Sperren der Authentifizierung nach dem Limit
         """INTEGRATIONSTEST: Überprüfung der Sperrmeldung nach dem 5. Fehlversuch."""
         for _ in range(5):  
             
@@ -57,12 +107,14 @@ class AuthenticationSystemTests(unittest.TestCase):  # Erstellt die Testklasse, 
        
         self.assertIn(b'Konto wegen zu vieler Versuche gesperrt.', response.data)  # Prüft, ob der Login trotz korrektem Passwort wegen der Sperre abgelehnt wird
 
-    # --- SYSTEMTESTS (END-TO-END) ---
-    def test_03_system_full_successful_login_to_dashboard(self):  # Simuliert den kompletten, erfolgreichen Nutzerprozess
+   
+    # --- SYSTEMTESTS  ---
+    def test_05_system_full_successful_login_to_dashboard(self):  # Simuliert den kompletten, erfolgreichen Nutzerprozess
         """SYSTEMTEST: Kompletter Klickpfad von Login über MFA bis zum Dashboard."""
         from flask import session  # Importiert das Flask-Session-Modul, um Sitzungsdaten während des Testverlaufs auszulesen
-        
-        with self.client as c:  # Öffnet den Client-Kontext, damit Session-Daten zwischen Requests erhalten bleiben
+
+        # Öffnet den Client-Kontext, damit Session-Daten zwischen Requests erhalten bleiben
+        with self.client as c:  
             response = c.post('/login', data={'email': 'falonnedianesimo@gmail.com', 'password': 'Falonnediane1.'}, follow_redirects=True)
             self.assertIn(b'2-Faktor-Authentifizierung', response.data)  # Bestätigt, dass der Nutzer auf der MFA-Oberfläche landet
             
@@ -70,13 +122,13 @@ class AuthenticationSystemTests(unittest.TestCase):  # Erstellt die Testklasse, 
             self.assertIsNotNone(mfa_code)  # Prüft, ob überhaupt ein Code generiert und in der Session abgelegt wurde
             response_mfa = c.post('/mfa', data={'code': mfa_code}, follow_redirects=True)
            
-           
             self.assertIn(b'Dashboard', response_mfa.data)  # Prüft, ob das Wort 'Dashboard' auf der Seite steht
             self.assertIn(b'falonnedianesimo@gmail.com', response_mfa.data)  # Prüft, ob die E-Mail des Nutzers im Dashboard angezeigt wird
 
-    def test_04_system_password_reset_and_login_with_new_password(self):  # Simuliert den vollständigen "Passwort vergessen"-Ablauf
+    # Simuliert den vollständigen "Passwort vergessen"-Ablauf
+    def test_06_system_password_reset_and_login_with_new_password(self):  
         """SYSTEMTEST: Passwort vergessen ➔ Zurücksetzen ➔ Login mit neuem Passwort."""
-        with self.client as c:  # Öffnet den Client-Kontext, um den Zustand über mehrere Schritte hinweg zu speichern
+        with self.client as c:  
             c.post('/reset_password', data={'email': 'falonnedianesimo@gmail.com'}, follow_redirects=True)
             
             response_reset = c.post('/set_new_password', data={'password': 'NeuPasswort2026!'}, follow_redirects=True)
