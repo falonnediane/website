@@ -3,14 +3,14 @@ import sqlite3
 import os       
 import bcrypt    
 import re        
-from app import app, get_db , ist_passwort_stark , random # Importiert die Flask-App, die Datenbankfunktion und die Passwortstärkefunktion
+from app import app, get_db , ist_passwort_stark , random 
 
 
-class AuthenticationSystemTests(unittest.TestCase):  # Erstellt die Testklasse, die von unittest.TestCase erbt
+class AuthenticationSystemTests(unittest.TestCase):  
 
     def setUp(self):  # Diese Methode läuft automatisch VOR JEDEM EINZELNEN Test ab (Initialisierung)
        
-        app.config['TESTING'] = True  # Schaltet Flask in den Testmodus (Fehler werden direkt im Terminal angezeigt)
+        app.config['TESTING'] = True  # Schaltet Flask in den Testmodus 
         
         
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Ermittelt den absoluten Pfad des Ordners, in dem diese Testdatei liegt
@@ -29,7 +29,7 @@ class AuthenticationSystemTests(unittest.TestCase):  # Erstellt die Testklasse, 
                 password_hash = bcrypt.hashpw("Falonnediane1.".encode('utf-8'), bcrypt.gensalt())
                 # Fügt den Standard-Testbenutzer mit der E-Mail und dem Passwort-Hash in die Tabelle ein
                 conn.execute("INSERT INTO users (email, password) VALUES (?, ?)", ("falonnedianesimo@gmail.com", password_hash))
-                conn.commit()  # Bestätigt und speichert den neuen Testbenutzer
+                conn.commit()  
 
     # --- UNIT-TEST ---
     def test_00_unit_passwort_staerke(self): 
@@ -111,7 +111,7 @@ class AuthenticationSystemTests(unittest.TestCase):  # Erstellt die Testklasse, 
     # --- SYSTEMTESTS  ---
     def test_05_system_full_successful_login_to_dashboard(self):  # Simuliert den kompletten, erfolgreichen Nutzerprozess
         """SYSTEMTEST: Kompletter Klickpfad von Login über MFA bis zum Dashboard."""
-        from flask import session  # Importiert das Flask-Session-Modul, um Sitzungsdaten während des Testverlaufs auszulesen
+        from flask import session  
 
         # Öffnet den Client-Kontext, damit Session-Daten zwischen Requests erhalten bleiben
         with self.client as c:  
@@ -119,7 +119,7 @@ class AuthenticationSystemTests(unittest.TestCase):  # Erstellt die Testklasse, 
             self.assertIn(b'2-Faktor-Authentifizierung', response.data)  # Bestätigt, dass der Nutzer auf der MFA-Oberfläche landet
             
             mfa_code = session.get('mfa_code')  # Abfangen des geheimen 2FA-Codes aus der Session (simuliert das Ablesen einer SMS/E-Mail)
-            self.assertIsNotNone(mfa_code)  # Prüft, ob überhaupt ein Code generiert und in der Session abgelegt wurde
+            self.assertIsNotNone(mfa_code)  
             response_mfa = c.post('/mfa', data={'code': mfa_code}, follow_redirects=True)
            
             self.assertIn(b'Dashboard', response_mfa.data)  # Prüft, ob das Wort 'Dashboard' auf der Seite steht

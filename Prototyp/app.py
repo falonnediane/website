@@ -17,10 +17,10 @@ def make_session_permanent():
     session.permanent = True
     # Aktualisiert den Zeitstempel bei jeder Interaktion
 
-# Datenbank-Verbindung mit Row-Factory für Namenszugriff (Behebt TypeError)
+# Datenbank-Verbindung 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# 2. Verbinde diesen Ordner fest mit dem Dateinamen
+# Verbinde diesen Ordner fest mit dem Dateinamen
 app.config['DATABASE'] = os.path.join(BASE_DIR, 'database.db')
 
 def get_db():
@@ -53,7 +53,7 @@ def ist_passwort_stark(password):
 def home():
     return redirect("/login")
 
-# Registrierung mit Hashing [cite: 37]
+# Registrierung mit Hashing 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -78,7 +78,7 @@ def register():
             flash("Diese E-Mail-Adresse existiert bereits!")
     return render_template("register.html")
 
-# Login mit Brute-Force Schutz & Logging [cite: 21, 28, 40]
+# Login mit Brute-Force Schutz & Logging 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -108,7 +108,7 @@ def login():
                 conn.execute("INSERT INTO logins(email, time, success) VALUES (?, ?, ?)",
                              (email, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 0))
                 conn.commit()
-                # NEU: Warnung beim 4. Versuch (da der aktuelle 5. gerade gespeichert wurde)
+                # Warnung beim 4. Versuch 
                 aktuelle_fehler = fehlversuche + 1
                 if aktuelle_fehler == 4:
                     flash("ACHTUNG: Dies ist Ihr vorletzter Versuch, bevor das Konto gesperrt wird!")
@@ -129,7 +129,7 @@ def dashboard():
         return redirect("/login")
 
     with get_db() as conn:
-        # Wir holen alle relevanten Spalten für die Analyse [cite: 40]
+        # Wir holen alle relevanten Spalten für die Analyse 
         logs = conn.execute("SELECT email, time, success FROM logins ORDER BY time DESC").fetchall()
 
     total_seconds = app.config['PERMANENT_SESSION_LIFETIME'].total_seconds()
@@ -154,23 +154,22 @@ def mfa():
             session.pop("mfa_code")
             return redirect("/dashboard")
         else:
-        # FEHLER: Hier wird die Nachricht für die MFA-Seite erstellt
+        # Hier wird die Nachricht für die MFA-Seite erstellt
          with get_db() as conn:
           conn.execute("INSERT INTO logins(email, time, success) VALUES (?, ?, ?)",
                              (email, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 0))
           conn.commit()   
         flash("Falscher MFA-Code! Bitte erneut versuchen.")
 
-            # Wir bleiben auf der MFA-Seite
+            
     return render_template("mfa.html")
 
-# Schritt 1: E-Mail eingeben (hast du schon fast fertig)
+# Schritt 1: E-Mail eingeben 
 @app.route("/reset_password", methods=["GET", "POST"])
 def reset_password():
     if request.method == "POST":
         email = request.form.get("email")
-        # In der Realität würde man hier prüfen, ob der User existiert
-        # Für den Prototyp leiten wir direkt zur Eingabe des NEUEN Passworts weiter
+       
         session["reset_email"] = email
         return redirect("/set_new_password")
     return render_template("reset_password.html")
@@ -238,7 +237,7 @@ def init_db():
         """)
         conn.commit()
 
-# Erstellt einen temporären Kontext, damit g während init_db() verfügbar ist
+# Erstellt einen temporären Kontext
 with app.app_context():
     init_db()
 
