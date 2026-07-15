@@ -37,7 +37,8 @@ def close_db(exception):
     db = g.pop('db', None)
     if db is not None:
         db.close()
-
+        
+# Passwortstärke prüfen
 def ist_passwort_stark(password):
     if len(password) < 8:
         return False, "Passwort muss mindestens 8 Zeichen lang sein."
@@ -217,7 +218,7 @@ def set_new_password():
 
     return render_template("set_new_password.html")
 
-
+# Datenbank initialisieren, falls sie noch nicht existiert
 def init_db():
     with get_db() as conn:
         conn.execute("""
